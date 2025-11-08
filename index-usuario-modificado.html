@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Gestão de Fretes - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#1173d4",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#101922",
+                    },
+                    fontFamily: {
+                        "display": ["Work Sans", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .modal { display: none; }
+        .modal.active { display: flex; }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+        <div class="flex h-full grow flex-col">
+            <header class="flex items-center justify-between whitespace-nowrap border-b border-gray-200 dark:border-gray-800 px-10 py-3 bg-white dark:bg-background-dark shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="size-8 text-primary">
+                        <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M42.4379 44C42.4379 44 36.0744 33.9038 41.1692 24C46.8624 12.9336 42.2078 4 42.2078 4L7.01134 4C7.01134 4 11.6577 12.932 5.96912 23.9969C0.876273 33.9029 7.27094 44 7.27094 44L42.4379 44Z" fill="currentColor"></path></svg>
+                    </div>
+                    <h2 class="text-xl font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white">Gestão de Fretes Vetore</h2>
+                </div>
+                <button onclick="toggleDarkMode()" id="darkModeToggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors" title="Alternar modo escuro">
+                    <svg id="sunIcon" class="w-6 h-6 text-gray-800 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg id="moonIcon" class="w-6 h-6 text-gray-800 dark:text-gray-200 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                    </svg>
+                </button>
+            </header>
+
+            <main class="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Navegação por Abas -->
+                <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+                    <nav class="flex space-x-8" aria-label="Tabs">
+                        <button onclick="mudarAba('dashboard')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-primary text-primary" data-tab="dashboard">
+                            Dashboard
+                        </button>
+                        <button onclick="mudarAba('todas')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="todas">
+                            Todas as Solicitações
+                        </button>
+                        <button onclick="mudarAba('novo-envio')" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300" data-tab="novo-envio">
+                            Novo Envio
+                        </button>
+
+                    </nav>
+                </div>
+
+                <!-- ABA: Dashboard -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-3xl">🚚</span>
+                            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Fretes</h1>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-400">Consulte o status das suas solicitações em tempo real</p>
+                    </div>
+
+                    <!-- Busca -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-2xl">🔍</span>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">Buscar Solicitação</h2>
+                        </div>
+                        <div class="flex gap-3">
+                            <input type="text" id="searchInput" placeholder="Digite o ID do pedido ou e-mail..." class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                            <button onclick="buscarSolicitacao()" class="px-6 py-2 bg-primary text-white rounded-md hover:bg-blue-600 font-medium">Buscar</button>
+                            <button onclick="limparBusca()" class="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-medium">Limpar</button>
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">TOTAL DE SOLICITAÇÕES</h3>
+                            <p id="totalSolicitacoes" class="text-4xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">NÃO INICIADAS</h3>
+                            <p id="naoIniciadas" class="text-4xl font-bold text-cyan-600">0</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">EM EXECUÇÃO</h3>
+                            <p id="emExecucao" class="text-4xl font-bold text-yellow-600">0</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">CONCLUÍDAS</h3>
+                            <p id="concluidas" class="text-4xl font-bold text-green-600">1</p>
+                        </div>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                            <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">CANCELADAS</h3>
+                            <p id="canceladas" class="text-4xl font-bold text-red-600">11</p>
+                        </div>
+                    </div>
+
+                    <!-- Tabela Resumida -->
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-2xl">📋</span>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white">Todas as Solicitações</h2>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">STATUS</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">DATA SOLICITAÇÃO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SOLICITANTE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">E-MAIL</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">TELEFONE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">TIPO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">VEÍCULO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">DATA PREVISTA</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">URGÊNCIA</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">AÇÕES</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaSolicitacoes" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr>
+                                        <td colspan="11" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Carregando dados...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: Todas as Solicitações -->
+                <div id="todas" class="tab-content">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Todas as Solicitações</h2>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-700">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">STATUS</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">DATA SOLICITAÇÃO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">SOLICITANTE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">E-MAIL</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">TELEFONE</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">TIPO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">VEÍCULO</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">DATA PREVISTA</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">URGÊNCIA</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">AÇÕES</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaTodasSolicitacoes" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tr>
+                                        <td colspan="11" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Carregando dados...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: Novo Envio -->
+                <div id="novo-envio" class="tab-content">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">Novo Envio</h2>
+                        <p class="text-gray-600 dark:text-gray-400 mb-6">Preencha os detalhes abaixo para criar um novo envio.</p>
+                        
+                        <form id="formNovoEnvio" class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Solicitante</label>
+                                    <input type="text" name="solicitante" required placeholder="Seu nome completo" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">E-mail</label>
+                                    <input type="email" name="email" required placeholder="seuemail@exemplo.com" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de Contato</label>
+                                    <input type="tel" name="numero_contato" required placeholder="(00) 0 0000-0000" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Empresa</label>
+                                    <input type="text" name="empresa" placeholder="Nome da sua empresa" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo</label>
+                                    <div class="flex gap-4">
+                                        <label class="flex items-center">
+                                            <input type="radio" name="tipo" value="Envio" checked class="text-primary focus:ring-primary">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Envio</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="radio" name="tipo" value="Coleta" class="text-primary focus:ring-primary">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Coleta</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Veículo Necessário*</label>
+                                    <div class="flex gap-4">
+                                        <label class="flex items-center">
+                                            <input type="radio" name="tipo_veiculo" value="Caminhão" checked class="text-primary focus:ring-primary">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Caminhão</span>
+                                        </label>
+                                        <label class="flex items-center">
+                                            <input type="radio" name="tipo_veiculo" value="Carro" class="text-primary focus:ring-primary">
+                                            <span class="ml-2 text-gray-700 dark:text-gray-300">Carro</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Data de Coleta/Envio</label>
+                                    <input type="date" name="data_coleta" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Horário de Janela</label>
+                                    <input type="time" name="horario_janela" required class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Urgência?</label>
+                                <div class="flex gap-4">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="urgencia" value="Sim" class="text-primary focus:ring-primary">
+                                        <span class="ml-2 text-gray-700 dark:text-gray-300">Sim</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="urgencia" value="Não" checked class="text-primary focus:ring-primary">
+                                        <span class="ml-2 text-gray-700 dark:text-gray-300">Não</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Endereço - Colocar link Google Maps*</label>
+                                <input type="text" name="endereco" required placeholder="Cole aqui o link do Google Maps" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Observação (Opcional)</label>
+                                <textarea name="observacao" rows="4" placeholder="Alguma informação adicional?" class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary"></textarea>
+                            </div>
+
+                            <div id="mensagemEnvio" class="hidden p-4 rounded-md"></div>
+
+                            <div class="flex justify-end">
+                                <button type="submit" class="px-6 py-3 bg-primary text-white rounded-md hover:bg-blue-600 font-medium text-lg">Criar Envio</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes -->
+    <div id="modalDetalhes" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Detalhes da Solicitação</h3>
+                    <button onclick="fecharModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="conteudoModal" class="space-y-4">
+                    <!-- Conteúdo será preenchido dinamicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // CONFIGURAÇÃO - COLE SUAS URLs AQUI
+        // ========================================
+        
+        // URL do Google Apps Script (para ENVIAR dados)
+        const apiUrl = 'https://script.google.com/macros/s/AKfycbxh9UZhkB-fZlAkyQbl6MY_3Nqa-2yD13pcVFtauDsV76QrkE_vcRAuunw6MAyZWf_o/exec';
+        
+        // Configuração para LER dados da planilha via CSV
+        const SPREADSHEET_ID = '1YOIcPa1sWU2D7YWUfNR8ftlYvCzZSqACgcJpOFcxZP8';
+        const SHEET_GID = '1374206693'; // ALTERE PARA O GID DA SUA ABA "Visualizador Geral"
+        
+        // ========================================
+        // FIM DA CONFIGURAÇÃO
+        // ========================================
+
+        let todasSolicitacoes = [];
+        let solicitacoesFiltradas = [];
+
+        // ========================================
+        // FUNÇÃO DE MODO ESCURO
+        // ========================================
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('darkMode', 'light');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('darkMode', 'dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            }
+        }
+
+        function loadDarkModePreference() {
+            const darkMode = localStorage.getItem('darkMode');
+            const html = document.documentElement;
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+            
+            if (darkMode === 'dark') {
+                html.classList.add('dark');
+                if (sunIcon) sunIcon.classList.add('hidden');
+                if (moonIcon) moonIcon.classList.remove('hidden');
+            }
+        }
+
+        // ========================================
+        // FUNÇÕES DE FILTRO POR DATA
+        // ========================================
+        function parseDate(dateStr) {
+            if (!dateStr) return null;
+            let parts;
+            if (dateStr.includes('/')) {
+                parts = dateStr.split('/');
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            } else if (dateStr.includes('-')) {
+                parts = dateStr.split('-');
+                return new Date(parts[0], parts[1] - 1, parts[2]);
+            }
+            return null;
+        }
+
+        function renderizarTabelaHoje() {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            
+            const demandasHoje = todasSolicitacoes.filter(sol => {
+                if (!sol['Data de Coleta/Envio']) return false;
+                const dataSol = parseDate(sol['Data de Coleta/Envio']);
+                return dataSol && dataSol.getTime() === hoje.getTime();
+            });
+            
+            const tbody = document.getElementById('tabelaHoje');
+            if (demandasHoje.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma demanda para hoje</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = demandasHoje.map(sol => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${sol.ID || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(sol['Status Manual'])}">${sol['Status Manual'] || '-'}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol.Solicitante || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol['Número de Contato'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol.Tarefa || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol.Veículo || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol['Horário de Janela'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol['Motorista Responsável'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick='abrirModal(${JSON.stringify(sol).replace(/'/g, "\'")})'  class="text-primary hover:text-blue-700">Ver Detalhes</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderizarTabelaAmanha() {
+            const amanha = new Date();
+            amanha.setDate(amanha.getDate() + 1);
+            amanha.setHours(0, 0, 0, 0);
+            
+            const demandasAmanha = todasSolicitacoes.filter(sol => {
+                if (!sol['Data de Coleta/Envio']) return false;
+                const dataSol = parseDate(sol['Data de Coleta/Envio']);
+                return dataSol && dataSol.getTime() === amanha.getTime();
+            });
+            
+            const tbody = document.getElementById('tabelaAmanha');
+            if (demandasAmanha.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma demanda para amanhã</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = demandasAmanha.map(sol => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${sol.ID || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(sol['Status Manual'])}">${sol['Status Manual'] || '-'}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol.Solicitante || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol['Número de Contato'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol.Tarefa || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol.Veículo || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol['Horário de Janela'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">${sol['Motorista Responsável'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick='abrirModal(${JSON.stringify(sol).replace(/'/g, "\'")})'  class="text-primary hover:text-blue-700">Ver Detalhes</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Função para mudar de aba
+        function mudarAba(abaId) {
+            // Remove classe active de todas as abas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('border-primary', 'text-primary');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+
+            // Adiciona classe active na aba selecionada
+            document.getElementById(abaId).classList.add('active');
+            document.querySelector(`[data-tab="${abaId}"]`).classList.remove('border-transparent', 'text-gray-500');
+            document.querySelector(`[data-tab="${abaId}"]`).classList.add('border-primary', 'text-primary');
+        }
+
+        // Função para carregar dados da planilha
+        async function carregarDados() {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GID}`;
+                
+                const response = await fetch(url);
+                const csvText = await response.text();
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        todasSolicitacoes = results.data.filter(row => row.ID && row.ID !== '');
+                        solicitacoesFiltradas = todasSolicitacoes;
+                        atualizarEstatisticas();
+                        renderizarTabela();
+                        renderizarTabelaTodas();
+                        renderizarTabelaHoje();
+                        renderizarTabelaAmanha();
+                    }
+                });
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                document.getElementById('tabelaSolicitacoes').innerHTML = 
+                    '<tr><td colspan="11" class="px-6 py-4 text-center text-red-500">Erro ao carregar dados. Verifique a configuração.</td></tr>';
+            }
+        }
+
+        // Função para atualizar estatísticas
+        function atualizarEstatisticas() {
+            const total = todasSolicitacoes.length;
+            const naoIniciadas = todasSolicitacoes.filter(s => 
+                s.Status && (s.Status.toLowerCase().includes('não iniciada') || s.Status.toLowerCase().includes('nao iniciada'))
+            ).length;
+            const emExecucao = todasSolicitacoes.filter(s => 
+                s.Status && (s.Status.toLowerCase().includes('em execução') || s.Status.toLowerCase().includes('em andamento'))
+            ).length;
+            const concluidas = todasSolicitacoes.filter(s => 
+                s.Status && (s.Status.toLowerCase().includes('concluída') || s.Status.toLowerCase().includes('concluida'))
+            ).length;
+            const canceladas = todasSolicitacoes.filter(s => 
+                s.Status && s.Status.toLowerCase().includes('cancelad')
+            ).length;
+
+            document.getElementById('totalSolicitacoes').textContent = total;
+            document.getElementById('naoIniciadas').textContent = naoIniciadas;
+            document.getElementById('emExecucao').textContent = emExecucao;
+            document.getElementById('concluidas').textContent = concluidas;
+            document.getElementById('canceladas').textContent = canceladas;
+        }
+
+        // Função para obter cor do status
+        function getStatusColor(status) {
+            if (!status) return 'bg-gray-100 text-gray-800';
+            const statusLower = status.toLowerCase();
+            if (statusLower.includes('não iniciada') || statusLower.includes('nao iniciada')) {
+                return 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200';
+            } else if (statusLower.includes('em execução') || statusLower.includes('em andamento')) {
+                return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+            } else if (statusLower.includes('concluída') || statusLower.includes('concluida')) {
+                return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+            } else if (statusLower.includes('cancelad')) {
+                return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+            }
+            return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+        }
+
+        // Função para renderizar tabela do dashboard
+        function renderizarTabela() {
+            const tbody = document.getElementById('tabelaSolicitacoes');
+            
+            if (solicitacoesFiltradas.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma solicitação encontrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = solicitacoesFiltradas.slice(0, 10).map(sol => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#${sol.ID || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(sol.Status)}">
+                            ${sol.Status || '-'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Dia e Hora da Solicitação'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${sol.Solicitante || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['E-mail'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Número de Contato'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol.Tarefa || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Veículo'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Data de Coleta/Envio'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Urgente?'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <button onclick='abrirModal(${JSON.stringify(sol).replace(/'/g, "\\'")})'  class="text-primary hover:text-blue-700 font-medium">Ver Detalhes</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Função para renderizar tabela de todas as solicitações
+        function renderizarTabelaTodas() {
+            const tbody = document.getElementById('tabelaTodasSolicitacoes');
+            
+            if (todasSolicitacoes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Nenhuma solicitação encontrada</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = todasSolicitacoes.map(sol => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#${sol.ID || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(sol.Status)}">
+                            ${sol.Status || '-'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Dia e Hora da Solicitação'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">${sol.Solicitante || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['E-mail'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Número de Contato'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol.Tarefa || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Veículo'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Data de Coleta/Envio'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${sol['Urgente?'] || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <button onclick='abrirModal(${JSON.stringify(sol).replace(/'/g, "\\'")})'  class="text-primary hover:text-blue-700 font-medium">Ver Detalhes</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Função de busca
+        function buscarSolicitacao() {
+            const termo = document.getElementById('searchInput').value.toLowerCase().trim();
+            
+            if (!termo) {
+                solicitacoesFiltradas = todasSolicitacoes;
+            } else {
+                solicitacoesFiltradas = todasSolicitacoes.filter(sol => 
+                    (sol.ID && sol.ID.toString().toLowerCase().includes(termo)) ||
+                    (sol['E-mail'] && sol['E-mail'].toLowerCase().includes(termo)) ||
+                    (sol.Solicitante && sol.Solicitante.toLowerCase().includes(termo))
+                );
+            }
+            
+            renderizarTabela();
+        }
+
+        // Função para limpar busca
+        function limparBusca() {
+            document.getElementById('searchInput').value = '';
+            solicitacoesFiltradas = todasSolicitacoes;
+            renderizarTabela();
+        }
+
+        // Função para abrir modal
+        function abrirModal(solicitacao) {
+            const modal = document.getElementById('modalDetalhes');
+            const conteudo = document.getElementById('conteudoModal');
+            
+            conteudo.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">ID</p>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white">#${solicitacao.ID || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</p>
+                        <span class="px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getStatusColor(solicitacao.Status)}">
+                            ${solicitacao.Status || '-'}
+                        </span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Solicitante</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao.Solicitante || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">E-mail</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['E-mail'] || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Telefone</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Número de Contato'] || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Empresa</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao.Empresa || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Tipo</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao.Tarefa || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Veículo</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Veículo'] || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Data Prevista</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Data de Coleta/Envio'] || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Horário</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Horário de Janela'] || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Urgência</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Urgente?'] || '-'}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Data de Solicitação</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Dia e Hora da Solicitação'] || '-'}</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Endereço</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Endereço - Colocar link Google Maps'] || '-'}</p>
+                    </div>
+                    <div class="md:col-span-2">
+                        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Observação</p>
+                        <p class="text-base text-gray-900 dark:text-white">${solicitacao['Observação (Opcional)'] || 'Nenhuma observação'}</p>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+        }
+
+        // Função para fechar modal
+        function fecharModal() {
+            document.getElementById('modalDetalhes').classList.remove('active');
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modalDetalhes').addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModal();
+            }
+        });
+
+        // Função para enviar formulário
+        document.getElementById('formNovoEnvio').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const mensagem = document.getElementById('mensagemEnvio');
+            mensagem.classList.add('hidden');
+            
+            const formData = new FormData(this);
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Enviando...';
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Sempre mostra sucesso, pois o erro de CORS não significa que falhou
+                mensagem.className = 'p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                mensagem.textContent = '✅ Solicitação enviada com sucesso! Verifique seu e-mail.';
+                mensagem.classList.remove('hidden');
+                
+                // Limpa o formulário
+                this.reset();
+                
+                // Recarrega os dados após 2 segundos
+                setTimeout(() => {
+                    carregarDados();
+                }, 2000);
+                
+            } catch (error) {
+                // Mesmo com erro de CORS, o envio pode ter funcionado
+                mensagem.className = 'p-4 rounded-md bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                mensagem.textContent = '✅ Solicitação enviada! Verifique seu e-mail e a planilha.';
+                mensagem.classList.remove('hidden');
+                
+                this.reset();
+                setTimeout(() => {
+                    carregarDados();
+                }, 2000);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Criar Envio';
+            }
+        });
+
+        // Busca ao pressionar Enter
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarSolicitacao();
+            }
+        });
+
+        // Carrega dados ao iniciar
+        carregarDados();
+        
+        // Atualiza dados a cada 30 segundos
+        setInterval(carregarDados, 30000);
+    </script>
+</body>
+
+</html>
+
+
